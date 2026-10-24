@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>release-risk-ml: rules first, model for the rest</title>
+<meta name="description" content="Validate a proposed deploy, run the rule gate, regenerate the synthetic dataset and see how many rows never need the model. The real code runs in your browser.">
+<meta property="og:title" content="release-risk-ml">
+<meta property="og:description" content="Validate a proposed deploy, run the rule gate, regenerate the synthetic dataset and see how many rows never need the model. The real code runs in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234f46e5'/%3E%3Ccircle cx='16' cy='16' r='6' fill='none' stroke='%23fff' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+
+:root{--bg:#f8fafc;--panel:#fff;--panel2:#f1f5f9;--line:#e2e8f0;--fg:#0f172a;--mute:#475569;--brand:#4338ca;--brand-bg:#e0e7ff;--ok:#047857;--ok-bg:#d1fae5;--err:#b91c1c;--err-bg:#fee2e2;--code:#0b1220;--code-fg:#e2e8f0}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#070d1a;--panel:#0d1526;--panel2:#111c33;--line:#1e2b47;--fg:#e8eefc;--mute:#9fb0cc;--brand:#818cf8;--brand-bg:#1e1b4b;--ok:#34d399;--ok-bg:#06382b;--err:#fca5a5;--err-bg:#3b1212}}
+:root[data-theme=dark]{--bg:#070d1a;--panel:#0d1526;--panel2:#111c33;--line:#1e2b47;--fg:#e8eefc;--mute:#9fb0cc;--brand:#818cf8;--brand-bg:#1e1b4b;--ok:#34d399;--ok-bg:#06382b;--err:#fca5a5;--err-bg:#3b1212}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--brand)}
+code,pre,textarea,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+nav{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:56px;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--fg);text-decoration:none}
+.logo i{width:22px;height:22px;border-radius:6px;background:#4f46e5;display:inline-block}
+nav .links{display:flex;gap:18px;align-items:center;font-size:14px}
+nav .links a{color:var(--mute);text-decoration:none}
+nav .links a:hover{color:var(--fg)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;font-weight:600;text-decoration:none;border:1px solid var(--line);color:var(--fg);background:var(--panel);cursor:pointer;font-size:15px}
+.btn.primary{background:#4f46e5;border-color:#4f46e5;color:#ffffff}
+.btn.primary:hover{background:#6366f1}
+.btn:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid #4f46e5;outline-offset:2px}
+.hero{padding:72px 0 40px;text-align:center}
+.pill{display:inline-block;font-size:13px;color:var(--brand);background:var(--brand-bg);padding:4px 12px;border-radius:99px;margin-bottom:20px;font-weight:600}
+h1{font-size:clamp(34px,6vw,58px);line-height:1.08;margin:0 0 18px;letter-spacing:-.02em}
+h1 em{font-style:normal;color:var(--brand)}
+.lede{max-width:700px;margin:0 auto 28px;color:var(--mute);font-size:18px}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;margin-top:36px;color:var(--mute);font-size:14px}
+.stats b{display:block;color:var(--fg);font-size:22px}
+section{padding:56px 0}
+h2{font-size:clamp(26px,4vw,36px);margin:0 0 8px;letter-spacing:-.01em}
+.sub{color:var(--mute);margin:0 0 28px;max-width:720px}
+.lab{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.lab{grid-template-columns:minmax(0,1fr)}nav .links .hide-s{display:none}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-width:0}
+.card h3{margin:0;padding:12px 16px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:600 12px system-ui;padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);cursor:pointer;text-transform:none;letter-spacing:0}
+.chip[aria-pressed=true]{background:var(--brand-bg);border-color:var(--brand);color:var(--brand)}
+#log{display:block;width:100%;height:420px;border:0;padding:12px 14px;font-size:12.5px;line-height:1.55;background:var(--code);color:var(--code-fg);resize:vertical;white-space:pre;overflow:auto}
+.src{display:flex;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);font-size:13px;color:var(--mute);flex-wrap:wrap}
+.out{min-height:420px}
+.status{padding:16px;color:var(--mute);font-size:14px}
+.verdict{padding:18px 16px;border-bottom:1px solid var(--line);background:var(--err-bg)}
+.verdict.unknown{background:var(--panel2)}
+.verdict b{display:block;font-size:20px;text-transform:uppercase;letter-spacing:.04em;color:var(--err)}
+.verdict.unknown b{color:var(--mute)}
+.verdict span{font-size:14px;color:var(--mute)}
+.sec{padding:14px 16px;border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:0}
+.sec h4{margin:0 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.bar{height:10px;border-radius:99px;background:var(--panel2);overflow:hidden;max-width:260px;display:inline-block;vertical-align:middle;margin-right:10px;width:60%}
+.bar i{display:block;height:100%;background:#4f46e5}
+.site{padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.site:last-child{border:0}
+.site code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:12px}
+.fix{background:var(--ok-bg);color:var(--ok);padding:10px 12px;border-radius:8px;font-size:14px}
+.note{font-size:13px;color:var(--mute);margin-top:12px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media (max-width:860px){.steps{grid-template-columns:minmax(0,1fr)}}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+.step .n{width:28px;height:28px;border-radius:8px;background:var(--brand-bg);color:var(--brand);display:grid;place-items:center;font-weight:700;margin-bottom:10px}
+.step h3{margin:0 0 6px;font-size:17px}
+.step p{margin:0;color:var(--mute);font-size:15px}
+.tw{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow-x:auto;max-width:100%}
+table{width:100%;min-width:560px;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);background:var(--panel2)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-family:ui-monospace,monospace;font-weight:700;white-space:nowrap}
+.install pre{background:var(--code);color:var(--code-fg);padding:16px;border-radius:12px;overflow-x:auto;font-size:13.5px;margin:0 0 12px}
+.cols2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.cols2{grid-template-columns:minmax(0,1fr)}}
+.limits{background:var(--panel);border:1px solid var(--line);border-left:4px solid #f59e0b;border-radius:10px;padding:16px 20px}
+.limits ul{margin:8px 0 0;padding-left:20px;color:var(--mute)}
+footer{border-top:1px solid var(--line);padding:32px 0;color:var(--mute);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:14px}
+.f label{display:block;font-size:12px;color:var(--mute);margin-bottom:4px}
+.f input[type=number],.f select{width:100%;background:var(--code);color:var(--code-fg);border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-size:13px;font-family:ui-monospace,monospace}
+.f input[type=checkbox]{accent-color:var(--brand);width:18px;height:18px}
+.pre{display:flex;gap:6px;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
+.d{padding:18px 16px;border-bottom:1px solid var(--line)}
+.d b{display:block;font-size:20px;text-transform:uppercase;letter-spacing:.03em}
+.d.hi{background:var(--err-bg)} .d.hi b{color:var(--err)}
+.d.lo{background:var(--ok-bg)} .d.lo b{color:var(--ok)}
+.d.md{background:var(--panel2)} .d.md b{color:var(--mute)}
+.d span{font-size:14px;color:var(--mute)}
+.sec{padding:12px 16px;border-bottom:1px solid var(--line);font-size:14px}
+.sec:last-child{border:0}
+.sec h4{margin:0 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.m{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;padding:12px 14px}
+.m div{background:var(--panel2);border-radius:10px;padding:8px 10px;font-size:12px;color:var(--mute)}
+.m b{display:block;font-size:20px;color:var(--fg)}
+.bar{height:12px;border-radius:99px;background:var(--panel2);overflow:hidden;margin:6px 0}
+.bar i{display:block;height:100%;background:var(--brand)}
+.rl{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0}
+.rl code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:12px}
+.ctrl{padding:14px;display:grid;gap:10px}
+.ctrl input[type=range]{width:100%;accent-color:var(--brand)}
+.ctrl label{font-size:13px;color:var(--mute)}
+.psi{font:700 12px ui-monospace,monospace;padding:3px 10px;border-radius:6px}
+.psi.n{background:var(--ok-bg);color:var(--ok)} .psi.m2{background:#fef3c7;color:#92400e} .psi.s{background:var(--err-bg);color:var(--err)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .psi.m2{background:#3a2a07;color:#fcd34d}}
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <a class="logo" href="#top"><i></i>release-risk-ml</a>
+  <div class="links"><a href="#try" class="hide-s">Try it</a><a href="#install" class="hide-s">Install</a><a class="btn" href="https://github.com/gerardrecinto/release-risk-ml">GitHub</a></div>
+</div></nav>
+
+<header class="hero" id="top"><div class="wrap">
+  <h1>The model should only see what the <em>rules cannot decide</em>.</h1>
+  <p class="lede">A release-risk scoring pipeline where deterministic rules resolve the obvious deploys and a trained model scores only the ambiguous ones. Synthetic data, local training, mapped to SageMaker. Independently built, not run on AWS.</p>
+  <div class="cta"><a class="btn primary" href="#try">Run the rule gate</a><a class="btn" href="#install">Train it locally</a></div>
+  <div class="stats"><div><b>4</b>rules, each with a plain reason</div><div><b>0</b>real deploys, all data synthetic</div><div><b>0</b>AWS accounts touched</div></div>
+</div></header>
+
+
+<section id="try"><div class="wrap">
+  <h2>Run the rule gate on a deploy</h2>
+  <p class="sub">The real input validation and rule engine run in your browser. A rule answers the clear cases with a plain reason. Anything the rules cannot place would go to the model, which this page does not run. The data below is synthetic, as it is in the repo.</p>
+  <div class="lab">
+    <div class="card">
+      <h3><span>Proposed deploy</span></h3>
+      <div class="pre" role="group" aria-label="Presets"><button class="chip" data-p="clean" aria-pressed="true">Small, reviewed</button><button class="chip" data-p="hotfix" aria-pressed="false">Unreviewed hotfix</button><button class="chip" data-p="tests" aria-pressed="false">Failing tests</button><button class="chip" data-p="mid" aria-pressed="false">Ambiguous</button></div>
+      <div class="f">
+        <div><label for="lc">Lines changed</label><input id="lc" type="number" min="0"></div>
+        <div><label for="fc">Files changed</label><input id="fc" type="number" min="0"></div>
+        <div><label for="tp">Test pass rate (0 to 1)</label><input id="tp" type="number" min="0" max="1" step="0.05"></div>
+        <div><label for="ap">Review approvals</label><input id="ap" type="number" min="0"></div>
+        <div><label for="hr">Deploy hour (UTC)</label><input id="hr" type="number" min="0" max="23"></div>
+        <div><label for="ts">Hours since last deploy</label><input id="ts" type="number" min="0"></div>
+        <div><label for="ar">Author past rollback rate</label><input id="ar" type="number" min="0" max="1" step="0.05"></div>
+        <div><label for="fh">Failures in last 30 days</label><input id="fh" type="number" min="0"></div>
+        <div><label for="cr">Service criticality</label><select id="cr"><option>low</option><option>medium</option><option>high</option></select></div>
+        <div><label for="hf">Hotfix</label><input id="hf" type="checkbox"></div>
+      </div>
+    </div>
+    <div class="card" id="dec" aria-live="polite"><h3><span>Decision</span></h3><div class="status" id="boot">Loading the pipeline code (about 25 MB the first time, cached after)...</div></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>How many deploys never need the model?</h2>
+  <p class="sub">Generate the repo's synthetic dataset with its own seed, apply the rules, and count. Then shift one feature and watch the drift score the monitoring code reports.</p>
+  <div class="lab">
+    <div class="card"><h3><span>Synthetic release events</span></h3>
+      <div class="ctrl"><label for="nr">Rows <b id="nrv">5000</b></label><input id="nr" type="range" min="500" max="5000" step="500" value="5000"><label for="sd">Seed</label><input id="sd" type="number" value="42" style="background:var(--code);color:var(--code-fg);border:1px solid var(--line);border-radius:8px;padding:7px 8px;width:100%"><button class="btn primary" id="gen" type="button">Generate and apply rules</button></div>
+      <div id="cov"></div>
+    </div>
+    <div class="card"><h3><span>Drift check</span></h3>
+      <div class="ctrl"><label for="sh">Shift test pass rate by <b id="shv">0.00</b></label><input id="sh" type="range" min="-0.3" max="0.1" step="0.01" value="0"><div class="note" style="margin:0">Compares the generated test pass rates against a shifted copy with the repo's population stability index.</div></div>
+      <div id="psi"></div>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Why rules first</h2>
+  <div class="steps">
+    <div class="step"><div class="n">1</div><h3>Rules answer the obvious</h3><p>A 50% test pass rate does not need a model to call it risky. A rule says so in microseconds with a reason an auditor can read.</p></div>
+    <div class="step"><div class="n">2</div><h3>The model sees the rest</h3><p>The same rules filter the training data, so the model learns only the cases it will actually receive. Training on rule-solved rows would teach it a shortcut it never gets to use.</p></div>
+    <div class="step"><div class="n">3</div><h3>Built to map to SageMaker</h3><p>The repo includes a training entry point for the SageMaker contract, a Terraform file, and notes on monitoring, rollback, security and cost. None of it was run against AWS.</p></div>
+  </div>
+</div></section>
+
+<section id="install" class="install"><div class="wrap">
+  <h2>Train and serve it locally</h2>
+  <p class="sub">Python 3.12. No AWS credentials needed.</p>
+  <div class="cols2">
+    <div>
+<pre>python3.12 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+pip install -e .
+
+python -m release_risk_ml.training.generate_data --n-rows 5000 --seed 42
+python -m release_risk_ml.training.train --data data/releases.csv --model-dir artifacts</pre>
+    </div>
+    <div>
+<pre>uvicorn release_risk_ml.serving.app:app --port 8000
+scripts/smoke_test.sh http://localhost:8000
+
+python -m pytest tests/ -v</pre>
+      <p class="note">The README lists the held-out metrics from its own training run on the synthetic data. They are modest by design, since the rules already removed the easy rows.</p>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="limits">
+    <strong>What this does not do</strong>
+    <ul>
+      <li>The author has no prior production SageMaker experience, and the README says so. This was not deployed on AWS.</li>
+      <li>All data is synthetic, generated from a hand-written risk function. Nothing here predicts real deploys.</li>
+      <li>This page runs the rules, the data generator and the drift check. It does not train or run the model.</li>
+      <li>The monitoring functions are tested against synthetic batches, not wired to live traffic.</li>
+    </ul>
+  </div>
+</div></section>
+
+
+<footer><div class="wrap">
+  <span>release-risk-ml. Built by <a href="https://github.com/gerardrecinto">Gerard Recinto</a>.</span>
+  <span><a href="https://github.com/gerardrecinto/release-risk-ml">Source</a> &middot; <a href="https://github.com/gerardrecinto/release-risk-ml/releases">Releases</a></span>
+</div></footer>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+
+(() => {
+  const FILES = ["__init__.py", "schemas.py", "rail/__init__.py", "rail/rules.py", "training/__init__.py", "training/generate_data.py", "monitoring/__init__.py", "monitoring/drift.py"];
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const P = {
+    clean: { lc: 30, fc: 3, tp: 1, ap: 2, hr: 14, ts: 60, ar: 0.05, fh: 0, cr: "low", hf: false },
+    hotfix: { lc: 120, fc: 6, tp: 0.95, ap: 0, hr: 3, ts: 4, ar: 0.1, fh: 1, cr: "high", hf: true },
+    tests: { lc: 400, fc: 12, tp: 0.5, ap: 1, hr: 11, ts: 30, ar: 0.2, fh: 0, cr: "medium", hf: false },
+    mid: { lc: 300, fc: 10, tp: 0.92, ap: 1, hr: 22, ts: 20, ar: 0.15, fh: 1, cr: "high", hf: false },
+  };
+  let py = null, timer = null;
+  const track = (n) => { try { if (window.plausible) window.plausible(n); } catch (e) {} };
+  const PY = `
+import json
+import numpy as np
+from release_risk_ml.schemas import DeployFeatures
+from release_risk_ml.rail.rules import evaluate_rules
+from release_risk_ml.training.generate_data import generate
+from release_risk_ml.monitoring.drift import population_stability_index
+DF = None
+def decide(d):
+    f = DeployFeatures(**d)
+    r = evaluate_rules(f)
+    return json.dumps({"matched": r.matched, "rule": r.rule_name, "high": r.high_risk})
+def gen(n, seed, shift):
+    global DF
+    DF = generate(int(n), int(seed))
+    counts = {}; hi = 0; lo = 0
+    for row in DF.itertuples(index=False):
+        f = DeployFeatures(lines_changed=int(row.lines_changed), files_changed=int(row.files_changed), test_pass_rate=float(row.test_pass_rate),
+            code_review_approvals=int(row.code_review_approvals), is_hotfix=bool(row.is_hotfix), deploy_hour_utc=int(row.deploy_hour_utc),
+            time_since_last_deploy_hours=float(row.time_since_last_deploy_hours), author_past_rollback_rate=float(row.author_past_rollback_rate),
+            change_failure_history_30d=int(row.change_failure_history_30d), service_criticality=row.service_criticality)
+        r = evaluate_rules(f)
+        if r.matched:
+            counts[r.rule_name] = counts.get(r.rule_name, 0) + 1
+    return json.dumps({"n": len(DF), "base": float(DF["rollback_within_24h"].mean()), "rules": counts, "resolved": sum(counts.values())})
+def psi(shift):
+    base = DF["test_pass_rate"].to_numpy()
+    cur = np.clip(base + float(shift), 0.0, 1.0)
+    return json.dumps({"psi": population_stability_index(base, cur)})
+`;
+  const val = () => ({ lines_changed: +$("lc").value, files_changed: +$("fc").value, test_pass_rate: +$("tp").value, code_review_approvals: +$("ap").value, deploy_hour_utc: +$("hr").value, time_since_last_deploy_hours: +$("ts").value, author_past_rollback_rate: +$("ar").value, change_failure_history_30d: +$("fh").value, is_hotfix: $("hf").checked, service_criticality: $("cr").value });
+  function decide() {
+    if (!py) return;
+    const head = "<h3><span>Decision</span></h3>";
+    try {
+      py.globals.set("_d", py.toPy(val()));
+      const r = JSON.parse(py.runPython("decide(dict(_d))"));
+      const cls = !r.matched ? "md" : (r.high ? "hi" : "lo");
+      $("dec").innerHTML = head + `<div class="d ${cls}"><b>${!r.matched ? "Goes to the model" : (r.high ? "High risk by rule" : "Low risk by rule")}</b><span>${r.matched ? "Decided by the rule <code>" + esc(r.rule) + "</code>. No model call." : "No rule matched. In the service this request would be scored by the trained model, which this page does not run."}</span></div>
+        <div class="sec"><h4>The four rules, in order</h4><div class="rl"><span><code>low_test_pass_rate</code> pass rate under 0.8</span><span>high risk</span></div><div class="rl"><span><code>unreviewed_hotfix</code> hotfix, 0 approvals</span><span>high risk</span></div><div class="rl"><span><code>repeat_offender_service</code> 3+ failures in 30 days</span><span>high risk</span></div><div class="rl"><span><code>small_reviewed_clean_history</code></span><span>low risk</span></div></div>`;
+    } catch (e) {
+      const m = String(e.message || e).trim().split("\n"); const bad = m.filter((l) => /^\s*\w+\s*$/.test(l) || /Input should|greater than|less than/.test(l)).slice(0, 2).join(" ");
+      $("dec").innerHTML = head + `<div class="status" style="color:var(--err)">Those values are not valid: ${esc(bad || m[m.length - 1])}</div>`;
+    }
+  }
+  function gen() {
+    if (!py) return;
+    const btn = $("gen"); btn.disabled = true; btn.textContent = "Generating...";
+    setTimeout(() => {
+      try {
+        const r = JSON.parse(py.runPython(`gen(${$("nr").value}, ${+$("sd").value || 0}, 0)`));
+        const rows = Object.entries(r.rules).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="rl"><span><code>${esc(k)}</code></span><span>${v.toLocaleString()} (${((v / r.n) * 100).toFixed(1)}%)</span></div>`).join("");
+        $("cov").innerHTML = `<div class="m"><div><b>${r.n.toLocaleString()}</b>rows</div><div><b>${r.resolved.toLocaleString()}</b>resolved by rules</div><div><b>${((r.resolved / r.n) * 100).toFixed(1)}%</b>never reach the model</div><div><b>${(r.base * 100).toFixed(1)}%</b>rolled back</div></div><div class="sec"><div class="bar"><i style="width:${(r.resolved / r.n) * 100}%"></i></div>${rows}</div>`;
+        drift();
+      } catch (e) { $("cov").innerHTML = `<div class="status" style="color:var(--err)">${esc(String(e.message || e).trim().split("\n").pop())}</div>`; }
+      btn.disabled = false; btn.textContent = "Generate and apply rules"; track("rr_generate");
+    }, 30);
+  }
+  function drift() {
+    $("shv").textContent = (+$("sh").value).toFixed(2);
+    try {
+      const r = JSON.parse(py.runPython(`psi(${+$("sh").value})`));
+      const c = r.psi < 0.1 ? "n" : r.psi < 0.25 ? "m2" : "s", t = r.psi < 0.1 ? "no significant shift" : r.psi < 0.25 ? "moderate shift" : "significant drift";
+      $("psi").innerHTML = `<div class="sec"><h4>Population stability index</h4><span class="psi ${c}">${r.psi.toFixed(3)}</span> ${t}<div class="note">Under 0.1 is no significant shift, 0.1 to 0.25 moderate, over 0.25 significant, per the repo's docstring.</div></div>`;
+    } catch (e) { $("psi").innerHTML = '<div class="status">Generate the dataset first.</div>'; }
+  }
+  function setP(k) { const p = P[k]; Object.entries(p).forEach(([id, v]) => { const el = $(id); if (el.type === "checkbox") el.checked = v; else el.value = v; }); document.querySelectorAll("[data-p]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.p === k)); decide(); track("rr_preset_" + k); }
+  document.querySelectorAll("[data-p]").forEach((b) => b.addEventListener("click", () => setP(b.dataset.p)));
+  ["lc", "fc", "tp", "ap", "hr", "ts", "ar", "fh", "cr", "hf"].forEach((id) => $(id).addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(decide, 150); }));
+  $("nr").addEventListener("input", () => { $("nrv").textContent = $("nr").value; });
+  $("gen").addEventListener("click", gen);
+  $("sh").addEventListener("input", drift);
+  (async () => {
+    try {
+      py = await loadPyodide();
+      await py.loadPackage(["numpy", "pandas", "pydantic"]);
+      ["rail", "training", "monitoring"].forEach((d) => py.FS.mkdirTree("/lib/release_risk_ml/" + d));
+      await Promise.all(FILES.map(async (f) => { const r = await fetch("py/" + f); if (!r.ok) throw new Error("could not load " + f); py.FS.writeFile("/lib/release_risk_ml/" + f, await r.text()); }));
+      py.runPython("import sys; sys.path.insert(0, '/lib')"); py.runPython(PY);
+      window.__RR_READY__ = true; setP("clean"); gen();
+    } catch (e) { $("boot").textContent = "The in-browser pipeline did not load (" + String(e.message || e).split("\n").pop() + "). The local quickstart below runs the same code."; }
+  })();
+})();
+
+</script>
+</body>
+</html>
