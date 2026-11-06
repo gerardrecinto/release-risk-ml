@@ -10,7 +10,7 @@ deployment, and monitoring. Built to close a real gap — no prior
 professional SageMaker or model-operationalization experience — not to
 misrepresent one.
 
-## Resume bullets (accurate language only)
+## What was built
 
 - Built a rules-first ML operationalization pipeline (RAIL design) where
   deterministic rules resolve 27% of cases before a model is invoked,
@@ -32,7 +32,7 @@ misrepresent one.
 AWS resources were provisioned; all metrics are Observed against
 synthetic data, labeled as such throughout `README.md`.
 
-## Interview talking points
+## Design notes
 
 **"Walk me through this project."**
 Start with the rules-first framing: most systems that bolt ML onto a
@@ -79,7 +79,7 @@ been applied against a real AWS account.
 - Unit + integration test coverage for rules, schema validation, training,
   and the serving path (24 tests, all passing — see README)
 
-## Claims this project does NOT support (say so directly if asked)
+## Claims this project does NOT support (stated directly)
 
 - Prior professional SageMaker usage
 - Any production deployment or real user traffic

@@ -10,10 +10,9 @@ production deployment.
 changed, test pass rate, review approvals, deploy time, service history),
 whether it's likely to need a rollback within 24 hours.
 
-**Honesty note**: I have no prior professional SageMaker experience. This
-project is independently built to demonstrate hands-on model-operationalization
-capability — training, registry mapping, deployment topology, monitoring,
-and rollback — not a claim of prior production SageMaker usage. The training
+**Scope**: this project covers model operationalization (training, registry
+mapping, deployment topology, monitoring and rollback). It is not a production
+SageMaker deployment. The training
 data is synthetic (see `release_risk_ml/training/generate_data.py`); metrics
 below are observed on that synthetic data, not production numbers.
 
@@ -135,4 +134,4 @@ docs/                     architecture, rollback, cost, security, monitoring, tr
 - `docs/COST_NOTES.md` — cost-conscious design decisions
 - `docs/SECURITY.md` — security notes
 - `docs/TROUBLESHOOTING.md` — troubleshooting guide
-- `docs/PORTFOLIO_SUMMARY.md` — interview talking points and resume bullets
+- `docs/PORTFOLIO_SUMMARY.md` — design notes and what the project supports
