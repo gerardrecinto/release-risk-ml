@@ -1,6 +1,6 @@
 # release-risk-ml
 
-A portfolio project demonstrating a RAIL-designed (Rules Applied Instantly,
+A project demonstrating a RAIL-designed (Rules Applied Instantly,
 model only for what's Left) ML operationalization pipeline: deterministic
 rules resolve the obvious cases, a trained model only ever sees the
 ambiguous ones, and the whole thing is built to map onto AWS SageMaker for
