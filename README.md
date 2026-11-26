@@ -11,10 +11,9 @@ changed, test pass rate, review approvals, deploy time, service history),
 whether it's likely to need a rollback within 24 hours.
 
 **Scope**: this project covers model operationalization (training, registry
-mapping, deployment topology, monitoring and rollback). It is not a production
-SageMaker deployment. The training
+mapping, deployment topology, monitoring and rollback). The training
 data is synthetic (see `release_risk_ml/training/generate_data.py`); metrics
-below are observed on that synthetic data, not production numbers.
+below are observed on that synthetic data.
 
 ## Why rules-first
 
